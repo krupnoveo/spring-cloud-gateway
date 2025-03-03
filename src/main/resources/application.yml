@@ -1,0 +1,122 @@
+spring:
+  application:
+    name: GATEWAY
+  config:
+    import: optional:file:../.env[.properties]
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowed-origins:
+              - "http://localhost:3000"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+      routes:
+        - id: user-service
+          uri: lb://${user.service.name}
+          predicates:
+            - Path=/auth/**, /me/**
+          filters:
+            - ValidateRoleFilter
+
+        - id: barbershop-service
+          uri: lb://${barbershop.service.name}
+          predicates:
+            - Path=/service/**, /barbershop/**
+          filters:
+            - ValidateRoleFilter
+
+        - id: record-service
+          uri: lb://${record.service.name}
+          predicates:
+            - Path=/record/**, /available_time/**
+          filters:
+            - ValidateRoleFilter
+
+routes-config:
+  services:
+    - name: ${user.service.name}
+      routes:
+        - path: /auth/signup
+          roles: none
+        - path: /auth/barber/signup
+          roles: admin
+        - path: /auth/administrator/signup
+          roles: admin
+        - path: /auth/signin
+          roles: none
+        - path: /me
+          roles: admin, administrator, barber, client
+        - path: /me/{id}
+          roles: admin, administrator
+        - path: /me/all
+          roles: admin
+        - path: /me/delete
+          roles: admin, administrator, barber, client
+        - path: /me/update/data
+          roles: admin, administrator, barber, client
+        - path: /me/update/password
+          roles: admin, administrator, barber, client
+        - path: /me/photo
+          roles: none
+        - path: /me/update/photo
+          roles: admin, administrator, barber, client
+        - path: /me/photo/delete
+          roles: admin, administrator, barber, client
+
+    - name: ${barbershop.service.name}
+      routes:
+        - path: /barbershop/{id}
+          roles: none
+        - path: /barbershop/all
+          roles: none
+        - path: /barbershop/new
+          roles: admin
+        - path: /barbershop/{id}/update
+          roles: admin
+        - path: /barbershop/{id}/delete
+          roles: admin
+        - path: /barbershop/{id}/photo
+          roles: none
+        - path: /barbershop/{id}/update/photo
+          roles: admin
+        - path: /barbershop/{id}/photo/delete
+          roles: admin
+        - path: /service/{id}
+          roles: none
+        - path: /service/all
+          roles: none
+        - path: /service/new
+          roles: admin
+        - path: /service/{id}/update
+          roles: admin
+        - path: /service/{id}/delete
+          roles: admin
+
+    - name: ${record.service.name}
+      routes:
+        - path: /record/{id}
+          roles: admin, administrator, client, barber
+        - path: /record/all
+          roles: admin, administrator, client, barber
+        - path: /record/new
+          roles: admin, administrator, client
+        - path: /record/{id}/delete
+          roles: admin, administrator, client
+        - path: /record/{id}/update/time
+          roles: admin, administrator, client
+        - path: /available_time/all
+          roles: none
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://${eureka.service.host}:${eureka.service.port}/eureka/
+
+server:
+  port: ${gateway.service.port}
+  forward-headers-strategy: framework
